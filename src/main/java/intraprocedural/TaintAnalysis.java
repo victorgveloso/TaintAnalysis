@@ -36,8 +36,6 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
     //Constructor of the class
     public TaintAnalysis(DirectedGraph<Unit> graph, String sinkFile, String sourceFile) throws IOException {
         super(graph);
-        Options.v().set_keep_line_number(true);
-        //soot.Main.v().run(sootArgs);
 
         // Read the sink and source files
         sinks = Files.readAllLines(Paths.get(sinkFile)).stream().map(String::trim).collect(Collectors.toList());
