@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -52,7 +53,6 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
         // The unit chain that can iterate over all the units in the unit graph
         Chain<Unit> unitChain = unitGraph.getBody().getUnits();
         for (Unit unit : unitChain) {
-
             // Cast the unit to Stmt (statement)
             Stmt stmt = (Stmt) unit;
             LineNumberTag sinkLineNumberTag = (LineNumberTag) stmt.getTag("LineNumberTag");
@@ -62,27 +62,44 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
             FlowMap<Unit, Value> inState = this.getFlowBefore(unit);
 
             // Check if unit is a sink
-            // TODO: Support reading the list of sinks from a file, and check whether unit is a sink.
-            if (stmt.containsInvokeExpr() &&
-                    stmt.getInvokeExpr().getMethodRef().
-                            getSignature().equals("<io.github.liliweise.Source: void sink(int)>")) {
+            for (String line : sinks) {
+                if (isInvocationOf(stmt, line)) {
+                    Set<Value> usedValues = getValuesUsedIn(unit);
 
-                //Get the values used in unit
-                Set<Value> usedValues = new HashSet<>();
-                for (ValueBox usedValueBoxes : unit.getUseBoxes()) {
-                    usedValues.add(usedValueBoxes.getValue());
-                }
-
-                // Check whether any of the used variables are tainted.
-                for (Value taintedValue : inState) {
-                    if (usedValues.contains(taintedValue)) {
+                    // Check whether any of the used variables are tainted.
+                    for (Map.Entry<Unit, FlowSet<Value>> entry : inState.entrySet()) {
+                        Unit source = entry.getKey();
+                        FlowSet<Value> taintedValues = entry.getValue();
+                        LineNumberTag sourceLineNumberTag = (LineNumberTag) source.getTag("LineNumberTag");
+                        int sourceLineNumber = sourceLineNumberTag.getLineNumber();
                         //If a variable is tainted, report a leak
-                        //TODO: Change the output to report both the taint source and the sink that causes the leak
-                        System.out.println("Leak at " + unit);
+                        for (Value value : taintedValues) {
+                            if (usedValues.contains(value)) {
+                                System.out.println("——————————————————");
+                                System.out.println("Found a leak");
+                                System.out.println("Source: line " + sourceLineNumber + ": " + source);
+                                System.out.println("Sink: line " + sinkLineNumber + ": " + unit);
+                                break;
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+
+    private static Set<Value> getValuesUsedIn(Unit unit) {
+        Set<Value> usedValues = new HashSet<>();
+        for (ValueBox usedValueBoxes : unit.getUseBoxes()) {
+            usedValues.add(usedValueBoxes.getValue());
+        }
+        return usedValues;
+    }
+
+    private static boolean isInvocationOf(Stmt stmt, String signature) {
+        return stmt.containsInvokeExpr() &&
+                stmt.getInvokeExpr().getMethodRef().
+                        getSignature().contains(signature.trim());
     }
 
 
