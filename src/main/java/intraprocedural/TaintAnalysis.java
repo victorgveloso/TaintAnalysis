@@ -22,7 +22,7 @@ import java.util.Set;
  *  Replace FlowSet<Value> with the data structure you chose. You will also need to change the type of several parameters and return values of the methods
  *
  */
-public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowSet<Value>> {
+public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value>> {
 
     //Constructor of the class
     public TaintAnalysis(DirectedGraph<Unit> graph) {
@@ -42,8 +42,7 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowSet<Value>> {
             Stmt stmt = (Stmt) unit;
 
             // Get the IN state of unit after the analysis
-            // TODO: You'll need to change the type of inState to the one you chose to represent the program states
-            FlowSet<Value> inState = this.getFlowBefore(unit);
+            FlowMap<Unit, Value> inState = this.getFlowBefore(unit);
 
             // Check if unit is a sink
             // TODO: Support reading the list of sinks from a file, and check whether unit is a sink.
@@ -71,7 +70,7 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowSet<Value>> {
 
 
     @Override
-    protected void flowThrough(FlowSet<Value> inState, Unit unit, FlowSet<Value> outState) {
+    protected void flowThrough(FlowMap<Unit, Value> inState, Unit unit, FlowMap<Unit, Value> outState) {
         /*
         * TODO: implement the transfer functions here
         *  This method is invoked for every statement in a method.
@@ -82,30 +81,26 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowSet<Value>> {
     }
 
     @Override
-    protected FlowSet<Value> newInitialFlow() {
+    protected FlowMap<Unit, Value> newInitialFlow() {
         // Initialize each program state
-        // TODO: Initialize your own data structure
-        return new ArraySparseSet<Value>();
+        return new FlowMap<>();
     }
 
     @Override
-    protected void merge(FlowSet<Value> out1, FlowSet<Value> out2, FlowSet<Value> in) {
+    protected void merge(FlowMap<Unit, Value> out1, FlowMap<Unit, Value> out2, FlowMap<Unit, Value> in) {
         // Merge program state out1 and out2 into in
-        // TODO: Change the merge function accordingly for your data structure
         out1.union(out2, in);
     }
 
     @Override
-    protected void copy(FlowSet<Value> src, FlowSet<Value> dest) {
+    protected void copy(FlowMap<Unit, Value> src, FlowMap<Unit, Value> dest) {
         // Copy from src to dest
-        // TODO: Change the copy function accordingly for your data structure
         src.copy(dest);
     }
 
     @Override
-    protected FlowSet<Value> entryInitialFlow() {
+    protected FlowMap<Unit, Value> entryInitialFlow() {
         // Initialize the initial program state
-        // TODO: Initialize your own data structure
-        return new ArraySparseSet<Value>();
+        return new FlowMap<>();
     }
 }
