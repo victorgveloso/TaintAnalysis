@@ -8,7 +8,6 @@ import soot.options.Options;
 import soot.tagkit.LineNumberTag;
 import soot.toolkits.graph.DirectedGraph;
 import soot.toolkits.graph.UnitGraph;
-import soot.toolkits.scalar.ArraySparseSet;
 import soot.toolkits.scalar.FlowSet;
 import soot.toolkits.scalar.ForwardFlowAnalysis;
 import soot.util.Chain;
@@ -106,12 +105,54 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
     @Override
     protected void flowThrough(FlowMap<Unit, Value> inState, Unit unit, FlowMap<Unit, Value> outState) {
         /*
-        * TODO: implement the transfer functions here
-        *  This method is invoked for every statement in a method.
-        *  The statement being analyzed is the parameter "unit"
-        *  Remember to handle implicit flows
+        * TODO: handle implicit flows
         * */
+        Stmt stmt = (Stmt) unit;
+        copy(inState, outState);
+        if (matchSources(outState, stmt) == null && findUsedTaintedValue(stmt, inState, outState) == null) {
+            untaintValues(outState, stmt);
+        }
+    }
 
+    private Unit findUsedTaintedValue(Unit stmt, FlowMap<Unit, Value> inState, FlowMap<Unit, Value> outState) {
+        for (Value usedValue : getValuesUsedIn(stmt)) {
+            Unit srcStmt;
+            if ((srcStmt = inState.getContainingSet(usedValue)) != null) {
+                taintValues(outState, srcStmt);
+                return srcStmt;
+            }
+        }
+        return null;
+    }
+
+    private Unit matchSources(FlowMap<Unit, Value> outState, Stmt stmt) {
+        for (String src : sources) {
+            if (isInvocationOf(stmt, src)) {
+                taintValues(outState, stmt);
+                return stmt;
+            }
+        }
+        return null;
+    }
+
+    private static void taintValues(FlowMap<Unit, Value> outState, Unit stmt) {
+        for (Value definedValue : getValuesDefinedIn(stmt)) {
+            outState.add(stmt, definedValue);
+        }
+    }
+
+    private static void untaintValues(FlowMap<Unit, Value> outState, Unit stmt) {
+        for (Value definedValue : getValuesDefinedIn(stmt)) {
+            outState.removeValue(stmt, definedValue);
+        }
+    }
+
+    private static Set<Value> getValuesDefinedIn(Unit stmt) {
+        Set<Value> definedValues = new HashSet<>();
+        for (ValueBox definedVars : stmt.getDefBoxes()) {
+            definedValues.add(definedVars.getValue());
+        }
+        return definedValues;
     }
 
     @Override
