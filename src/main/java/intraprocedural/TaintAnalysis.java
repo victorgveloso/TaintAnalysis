@@ -4,6 +4,8 @@ import soot.Unit;
 import soot.Value;
 import soot.ValueBox;
 import soot.jimple.Stmt;
+import soot.options.Options;
+import soot.tagkit.LineNumberTag;
 import soot.toolkits.graph.DirectedGraph;
 import soot.toolkits.graph.UnitGraph;
 import soot.toolkits.scalar.ArraySparseSet;
@@ -11,9 +13,13 @@ import soot.toolkits.scalar.FlowSet;
 import soot.toolkits.scalar.ForwardFlowAnalysis;
 import soot.util.Chain;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /*
  * The class extending ForwardFlowAnalysis. This is where you need to implement your taint analysis
@@ -24,9 +30,18 @@ import java.util.Set;
  */
 public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value>> {
 
+    private final List<String> sinks;
+    private final List<String> sources;
+
     //Constructor of the class
-    public TaintAnalysis(DirectedGraph<Unit> graph) {
+    public TaintAnalysis(DirectedGraph<Unit> graph, String sinkFile, String sourceFile) throws IOException {
         super(graph);
+        Options.v().set_keep_line_number(true);
+        //soot.Main.v().run(sootArgs);
+
+        // Read the sink and source files
+        sinks = Files.readAllLines(Paths.get(sinkFile)).stream().map(String::trim).collect(Collectors.toList());
+        sources = Files.readAllLines(Paths.get(sourceFile)).stream().map(String::trim).collect(Collectors.toList());
 
         //doAnalysis will perform the analysis
         doAnalysis();
@@ -40,6 +55,8 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
 
             // Cast the unit to Stmt (statement)
             Stmt stmt = (Stmt) unit;
+            LineNumberTag sinkLineNumberTag = (LineNumberTag) stmt.getTag("LineNumberTag");
+            int sinkLineNumber = sinkLineNumberTag.getLineNumber();
 
             // Get the IN state of unit after the analysis
             FlowMap<Unit, Value> inState = this.getFlowBefore(unit);
