@@ -1,5 +1,6 @@
 package intraprocedural;
 
+import soot.toolkits.scalar.ArraySparseSet;
 import soot.toolkits.scalar.FlowSet;
 
 import java.util.Collection;
@@ -87,7 +88,13 @@ public class FlowMap<K, V> implements Map<K, FlowSet<V>> {
     }
 
     public void add(K key, V value) {
-        FlowSet<V> flowSet = map.get(key);
+        FlowSet<V> flowSet;
+        if (!map.containsKey(key)) {
+            flowSet = new ArraySparseSet<>();
+            put(key, flowSet);
+        } else {
+            flowSet = map.get(key);
+        }
         flowSet.add(value);
     }
 
