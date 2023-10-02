@@ -4,8 +4,6 @@ import soot.Unit;
 import soot.Value;
 import soot.ValueBox;
 import soot.jimple.Stmt;
-import soot.options.Options;
-import soot.tagkit.LineNumberTag;
 import soot.toolkits.graph.DirectedGraph;
 import soot.toolkits.graph.UnitGraph;
 import soot.toolkits.scalar.FlowSet;
@@ -52,8 +50,8 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
         for (Unit unit : unitChain) {
             // Cast the unit to Stmt (statement)
             Stmt stmt = (Stmt) unit;
-            LineNumberTag sinkLineNumberTag = (LineNumberTag) stmt.getTag("LineNumberTag");
-            int sinkLineNumber = sinkLineNumberTag.getLineNumber();
+//            LineNumberTag sinkLineNumberTag = (LineNumberTag) stmt.getTag("LineNumberTag");
+//            int sinkLineNumber = sinkLineNumberTag.getLineNumber();
 
             // Get the IN state of unit after the analysis
             FlowMap<Unit, Value> inState = this.getFlowBefore(unit);
@@ -67,15 +65,17 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
                     for (Map.Entry<Unit, FlowSet<Value>> entry : inState.entrySet()) {
                         Unit source = entry.getKey();
                         FlowSet<Value> taintedValues = entry.getValue();
-                        LineNumberTag sourceLineNumberTag = (LineNumberTag) source.getTag("LineNumberTag");
-                        int sourceLineNumber = sourceLineNumberTag.getLineNumber();
+//                        LineNumberTag sourceLineNumberTag = (LineNumberTag) source.getTag("LineNumberTag");
+//                        int sourceLineNumber = sourceLineNumberTag.getLineNumber();
                         //If a variable is tainted, report a leak
                         for (Value value : taintedValues) {
                             if (usedValues.contains(value)) {
                                 System.out.println("——————————————————");
                                 System.out.println("Found a leak");
-                                System.out.println("Source: line " + sourceLineNumber + ": " + source);
-                                System.out.println("Sink: line " + sinkLineNumber + ": " + unit);
+//                                System.out.println("Source (" + source.getJavaSourceStartLineNumber() + "," + source.getJavaSourceStartColumnNumber() + "): " + source);
+//                                System.out.println("Sink (" + unit.getJavaSourceStartLineNumber() + "," + unit.getJavaSourceStartColumnNumber() + "): " + unit);
+                                System.out.println("Source: line " + source.getJavaSourceStartLineNumber() + ": " + source);
+                                System.out.println("Sink: line " + unit.getJavaSourceStartLineNumber() + ": " + unit);
                                 break;
                             }
                         }
