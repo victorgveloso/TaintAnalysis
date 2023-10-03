@@ -1,6 +1,7 @@
 package intraprocedural;
 
 import soot.Unit;
+import soot.UnitBox;
 import soot.Value;
 import soot.ValueBox;
 import soot.jimple.Stmt;
@@ -94,9 +95,10 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
     }
 
     private static boolean isInvocationOf(Stmt stmt, String signature) {
-        return stmt.containsInvokeExpr() &&
+        return (stmt.containsInvokeExpr() &&
                 stmt.getInvokeExpr().getMethodRef().
-                        getSignature().contains(signature.trim());
+                        getSignature().contains(signature.trim())) || stmt.getUnitBoxes().stream().map(UnitBox::getUnit).anyMatch(unit->isInvocationOf((Stmt) unit, signature));
+//        return stmt.toString().contains(signature.trim());
     }
 
 
