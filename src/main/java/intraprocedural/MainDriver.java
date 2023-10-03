@@ -64,7 +64,7 @@ class IntraTaintTransformer extends BodyTransformer {
 
         //Construct an instance of Taint Analysis and conduct the analysis
         try {
-            new TaintAnalysis(unitGraph, sinkFilename, sourceFilename);
+            new TaintAnalysis(unitGraph, sinkFilename, sourceFilename, body.getMethod().toString());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -22,10 +22,6 @@ import java.util.stream.Collectors;
 
 /*
  * The class extending ForwardFlowAnalysis. This is where you need to implement your taint analysis
- * TODO:
- *  Use a proper data structure for the program states so that you can support multiple taint sources and report the location of the taint source at the sinks.
- *  Replace FlowSet<Value> with the data structure you chose. You will also need to change the type of several parameters and return values of the methods
- *
  */
 public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value>> {
 
@@ -33,7 +29,7 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
     private final List<String> sources;
 
     //Constructor of the class
-    public TaintAnalysis(DirectedGraph<Unit> graph, String sinkFile, String sourceFile) throws IOException {
+    public TaintAnalysis(DirectedGraph<Unit> graph, String sinkFile, String sourceFile, String location) throws IOException {
         super(graph);
 
         // Read the sink and source files
@@ -49,13 +45,11 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
         // The unit chain that can iterate over all the units in the unit graph
         Chain<Unit> unitChain = unitGraph.getBody().getUnits();
         for (Unit unit : unitChain) {
-            // Cast the unit to Stmt (statement)
-            Stmt stmt = (Stmt) unit;
-//            LineNumberTag sinkLineNumberTag = (LineNumberTag) stmt.getTag("LineNumberTag");
-//            int sinkLineNumber = sinkLineNumberTag.getLineNumber();
-
             // Get the IN state of unit after the analysis
             FlowMap<Unit, Value> inState = this.getFlowBefore(unit);
+
+            // Cast the unit to Stmt (statement)
+            Stmt stmt = (Stmt) unit;
 
             // Check if unit is a sink
             for (String line : sinks) {
@@ -66,15 +60,11 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
                     for (Map.Entry<Unit, FlowSet<Value>> entry : inState.entrySet()) {
                         Unit source = entry.getKey();
                         FlowSet<Value> taintedValues = entry.getValue();
-//                        LineNumberTag sourceLineNumberTag = (LineNumberTag) source.getTag("LineNumberTag");
-//                        int sourceLineNumber = sourceLineNumberTag.getLineNumber();
                         //If a variable is tainted, report a leak
                         for (Value value : taintedValues) {
                             if (usedValues.contains(value)) {
                                 System.out.println("——————————————————");
-                                System.out.println("Found a leak");
-//                                System.out.println("Source (" + source.getJavaSourceStartLineNumber() + "," + source.getJavaSourceStartColumnNumber() + "): " + source);
-//                                System.out.println("Sink (" + unit.getJavaSourceStartLineNumber() + "," + unit.getJavaSourceStartColumnNumber() + "): " + unit);
+                                System.out.println("Found a leak in " + location);
                                 System.out.println("Source: line " + source.getJavaSourceStartLineNumber() + ": " + source);
                                 System.out.println("Sink: line " + unit.getJavaSourceStartLineNumber() + ": " + unit);
                                 break;
