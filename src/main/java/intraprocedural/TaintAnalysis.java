@@ -31,6 +31,7 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
     private final List<String> sinks;
     private final List<String> sources;
     private final List<Leak> leaks = new ArrayList<>();
+    private Unit taintedBranchSource = null;
 
     //Constructor of the class
     public TaintAnalysis(DirectedGraph<Unit> graph, String sinkFile, String sourceFile, String location) throws IOException {
@@ -98,29 +99,28 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
         return (stmt.containsInvokeExpr() &&
                 stmt.getInvokeExpr().getMethodRef().
                         getSignature().contains(signature.trim())) || stmt.getUnitBoxes().stream().map(UnitBox::getUnit).anyMatch(unit->isInvocationOf((Stmt) unit, signature));
-//        return stmt.toString().contains(signature.trim());
     }
-
 
     @Override
     protected void flowThrough(FlowMap<Unit, Value> inState, Unit unit, FlowMap<Unit, Value> outState) {
-        /*
-        * TODO: handle implicit flows
-        * */
         Stmt stmt = (Stmt) unit;
         copy(inState, outState);
         if (matchSources(outState, stmt) == null && findUsedTaintedValue(stmt, inState, outState) == null) {
-            untaintValues(outState, stmt);
+            untaintDefinedValues(outState, stmt);
         }
         if (stmt.branches()) {
-            taintValues(outState, stmt);
-        }
-        if (stmt.getBoxesPointingToThis().size() > 0) {
-            for (UnitBox mergingStmt : stmt.getBoxesPointingToThis()) {
-                Unit branchCandidate = mergingStmt.getUnit();
-                if (branchCandidate.branches()) {
-                    untaintValues(outState, branchCandidate, TaintAnalysis::getValuesUsedIn);
+            for (Value value : getValuesUsedIn(stmt)) {
+                Stmt source;
+                if ((source = (Stmt) inState.getContainingSet(value)) != null) {
+                    taintedBranchSource = source;
                 }
+            }
+        } else {
+            if (taintedBranchSource != null) {
+                taintDefinedValues(outState, stmt, taintedBranchSource);
+            }
+            if (stmt.getBoxesPointingToThis().size() > 0) {
+                taintedBranchSource = null;
             }
         }
     }
@@ -130,7 +130,7 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
         for (Value usedValue : getValuesUsedIn(stmt)) {
             Unit srcStmt;
             if ((srcStmt = inState.getContainingSet(usedValue)) != null) {
-                taintValues(outState, stmt, srcStmt);
+                taintDefinedValues(outState, stmt, srcStmt);
                 result = srcStmt;
             }
         }
@@ -140,24 +140,28 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
     private Unit matchSources(FlowMap<Unit, Value> outState, Stmt stmt) {
         for (String src : sources) {
             if (isInvocationOf(stmt, src)) {
-                taintValues(outState, stmt);
+                taintDefinedValues(outState, stmt);
                 return stmt;
             }
         }
         return null;
     }
 
-    private static void taintValues(FlowMap<Unit, Value> outState, Unit stmt) {
-        taintValues(outState, stmt, stmt);
+    private static void taintDefinedValues(FlowMap<Unit, Value> outState, Unit stmt) {
+        taintDefinedValues(outState, stmt, stmt);
     }
 
-    private static void taintValues(FlowMap<Unit, Value> outState, Unit affected, Unit src) {
-        for (Value definedValue : getValuesDefinedIn(affected)) {
+    private static void taintDefinedValues(FlowMap<Unit, Value> outState, Unit affected, Unit src) {
+        taintValues(outState, affected, src, TaintAnalysis::getValuesDefinedIn);
+    }
+
+    private static void taintValues(FlowMap<Unit, Value> outState, Unit affected, Unit src, Function<Unit, Set<Value>> cb) {
+        for (Value definedValue : cb.apply(affected)) {
             outState.add(src, definedValue);
         }
     }
 
-    private static void untaintValues(FlowMap<Unit, Value> outState, Unit stmt) {
+    private static void untaintDefinedValues(FlowMap<Unit, Value> outState, Unit stmt) {
         untaintValues(outState, stmt, TaintAnalysis::getValuesDefinedIn);
     }
 
