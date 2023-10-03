@@ -12,6 +12,17 @@ import java.util.Set;
 public class FlowMap<K, V> implements Map<K, FlowSet<V>> {
     private LinkedHashMap<K, FlowSet<V>> map;
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (Entry<K, FlowSet<V>> entry : map.entrySet()) {
+            sb.append(entry.getKey()).append(" -> ").append(entry.getValue()).append("\n");
+        }
+        return "FlowMap{" +
+                "map=" + sb +
+                '}';
+    }
+
     public FlowMap() {
         this.map = new LinkedHashMap<>();
     }
