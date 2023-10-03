@@ -126,14 +126,15 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
     }
 
     private Unit findUsedTaintedValue(Unit stmt, FlowMap<Unit, Value> inState, FlowMap<Unit, Value> outState) {
+        Unit result = null;
         for (Value usedValue : getValuesUsedIn(stmt)) {
             Unit srcStmt;
             if ((srcStmt = inState.getContainingSet(usedValue)) != null) {
                 taintValues(outState, stmt, srcStmt);
-                return srcStmt;
+                result = srcStmt;
             }
         }
-        return null;
+        return result;
     }
 
     private Unit matchSources(FlowMap<Unit, Value> outState, Stmt stmt) {

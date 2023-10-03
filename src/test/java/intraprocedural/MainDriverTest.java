@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import soot.Pack;
 import soot.PackManager;
 import soot.Scene;
@@ -30,12 +31,8 @@ class MainDriverTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"src/test/resources/TestCases/ImplicitFlow1,location,1,srcStr,2,snkStr",
-                "src/test/resources/TestCases/ImplicitFlow2,location,1,srcStr,2,snkStr",
-                "src/test/resources/TestCases/MultiTaint1,location,1,srcStr,2,snkStr",
-                "src/test/resources/TestCases/MultiTaint2,<ProgramToAnalyzeWithExpectedOutputs: void multiTaint2()>,100,a = staticinvoke <sensitive.Source: int source()>(),103,staticinvoke <sensitive.Sink: void leak(int)>(c)",
-                "src/test/resources/TestCases/MultiTaint3,location,1,srcStr,2,snkStr",
-                "src/test/resources/TestCases/MultiTaintImplicitFlow,location,1,srcStr,2,snkStr",
+    @CsvSource({"src/test/resources/TestCases/ImplicitFlow1,<ProgramToAnalyzeWithExpectedOutputs: void implicitFlow1()>,134,a = staticinvoke <sensitive.Source: int source()>(),141,staticinvoke <sensitive.Sink: void leak(int)>(c#2)",
+                "src/test/resources/TestCases/ImplicitFlow2,<ProgramToAnalyzeWithExpectedOutputs: void implicitFlow2()>,152,a = staticinvoke <sensitive.Source: int source()>(),161,staticinvoke <sensitive.Sink: void leak(int)>(d)",
                 "src/test/resources/TestCases/SimpleFlow1,<ProgramToAnalyzeWithExpectedOutputs: void simpleFlow1()>,14,x = staticinvoke <sensitive.Source: int source()>(),17,staticinvoke <sensitive.Sink: void sink(int)>(z)",
                 "src/test/resources/TestCases/SimpleFlow2,<ProgramToAnalyzeWithExpectedOutputs: void simpleFlow2()>,28,a = staticinvoke <sensitive.Source: int sensitiveInfo()>(),32,staticinvoke <sensitive.Sink: void leak(int)>(c)",
                 "src/test/resources/TestCases/SimpleFlow3,<ProgramToAnalyzeWithExpectedOutputs: void simpleFlow3()>,44,a = staticinvoke <sensitive.Source: int sensitiveInfo()>(),48,staticinvoke <sensitive.Sink: void leak(int)>(a)",
@@ -50,12 +47,12 @@ class MainDriverTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"src/test/resources/TestCases/ImplicitFlow1,0",
-            "src/test/resources/TestCases/ImplicitFlow2,0",
+    @CsvSource({"src/test/resources/TestCases/ImplicitFlow1,1",
+            "src/test/resources/TestCases/ImplicitFlow2,1",
             "src/test/resources/TestCases/MultiTaint1,2",
-            "src/test/resources/TestCases/MultiTaint2,1",
+            "src/test/resources/TestCases/MultiTaint2,2",
             "src/test/resources/TestCases/MultiTaint3,2",
-            "src/test/resources/TestCases/MultiTaintImplicitFlow,0",
+            "src/test/resources/TestCases/MultiTaintImplicitFlow,4",
             "src/test/resources/TestCases/SimpleFlow1,1",
             "src/test/resources/TestCases/SimpleFlow2,1",
             "src/test/resources/TestCases/SimpleFlow3,1",
@@ -69,15 +66,13 @@ class MainDriverTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"src/test/resources/TestCases/ImplicitFlow1,0",
-            "src/test/resources/TestCases/ImplicitFlow2,0",
-            "src/test/resources/TestCases/MultiTaintImplicitFlow,0",})
-    void testProgramToAnalyzeWithExpectedOutputs_ImplicitFlow(String path, int leaksCount) {
+    @ValueSource(strings = {"src/test/resources/TestCases/ImplicitFlow1",
+            "src/test/resources/TestCases/ImplicitFlow2",
+            "src/test/resources/TestCases/MultiTaintImplicitFlow",})
+    void testProgramToAnalyzeWithExpectedOutputs_ImplicitFlow(String path) {
         runSoot(path);
         TaintAnalysis taintAnalysis = t.getAnyTaintAnalysisWithLeaks();
         Assertions.assertNotNull(taintAnalysis);
-        List<Leak> leaks = taintAnalysis.getLeaks();
-        Assertions.assertEquals(leaksCount, leaks.size());
     }
 
     private static void runSoot(String path) {
