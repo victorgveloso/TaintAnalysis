@@ -118,7 +118,7 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
         for (Value usedValue : getValuesUsedIn(stmt)) {
             Unit srcStmt;
             if ((srcStmt = inState.getContainingSet(usedValue)) != null) {
-                taintValues(outState, srcStmt);
+                taintValues(outState, stmt, srcStmt);
                 return srcStmt;
             }
         }
@@ -136,8 +136,12 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
     }
 
     private static void taintValues(FlowMap<Unit, Value> outState, Unit stmt) {
-        for (Value definedValue : getValuesDefinedIn(stmt)) {
-            outState.add(stmt, definedValue);
+        taintValues(outState, stmt, stmt);
+    }
+
+    private static void taintValues(FlowMap<Unit, Value> outState, Unit affected, Unit src) {
+        for (Value definedValue : getValuesDefinedIn(affected)) {
+            outState.add(src, definedValue);
         }
     }
 
