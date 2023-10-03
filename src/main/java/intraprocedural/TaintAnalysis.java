@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /*
@@ -111,6 +112,17 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
         if (matchSources(outState, stmt) == null && findUsedTaintedValue(stmt, inState, outState) == null) {
             untaintValues(outState, stmt);
         }
+        if (stmt.branches()) {
+            taintValues(outState, stmt);
+        }
+        if (stmt.getBoxesPointingToThis().size() > 0) {
+            for (UnitBox mergingStmt : stmt.getBoxesPointingToThis()) {
+                Unit branchCandidate = mergingStmt.getUnit();
+                if (branchCandidate.branches()) {
+                    untaintValues(outState, branchCandidate, TaintAnalysis::getValuesUsedIn);
+                }
+            }
+        }
     }
 
     private Unit findUsedTaintedValue(Unit stmt, FlowMap<Unit, Value> inState, FlowMap<Unit, Value> outState) {
@@ -145,7 +157,11 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
     }
 
     private static void untaintValues(FlowMap<Unit, Value> outState, Unit stmt) {
-        for (Value definedValue : getValuesDefinedIn(stmt)) {
+        untaintValues(outState, stmt, TaintAnalysis::getValuesDefinedIn);
+    }
+
+    private static void untaintValues(FlowMap<Unit, Value> outState, Unit stmt, Function<Unit, Set<Value>> cb) {
+        for (Value definedValue : cb.apply(stmt)) {
             outState.removeValue(stmt, definedValue);
         }
     }
