@@ -1,5 +1,6 @@
 package intraprocedural;
 
+import com.google.common.annotations.VisibleForTesting;
 import soot.*;
 import soot.options.Options;
 import soot.toolkits.graph.BriefUnitGraph;
@@ -7,7 +8,7 @@ import soot.toolkits.graph.UnitGraph;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 public class MainDriver {
@@ -57,6 +58,23 @@ class IntraTaintTransformer extends BodyTransformer {
         this.sourceFilename = sourceFilename;
     }
 
+    private final List<TaintAnalysis> taintAnalysis = new java.util.ArrayList<>();
+
+    @VisibleForTesting
+    List<TaintAnalysis> getTaintAnalyses() {
+        return taintAnalysis;
+    }
+
+    @VisibleForTesting
+    TaintAnalysis getAnyTaintAnalysisWithLeaks() {
+        for (TaintAnalysis ta : taintAnalysis) {
+            if (ta.getLeaks().size() > 0) {
+                return ta;
+            }
+        }
+        return null;
+    }
+
     @Override
     protected void internalTransform(Body body, String s, Map<String, String> map) {
         // Build the unit graph for the analyzed method
@@ -64,7 +82,7 @@ class IntraTaintTransformer extends BodyTransformer {
 
         //Construct an instance of Taint Analysis and conduct the analysis
         try {
-            new TaintAnalysis(unitGraph, sinkFilename, sourceFilename, body.getMethod().toString());
+            taintAnalysis.add(new TaintAnalysis(unitGraph, sinkFilename, sourceFilename, body.getMethod().toString()));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

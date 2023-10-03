@@ -1,5 +1,6 @@
 package intraprocedural;
 
+import com.google.common.annotations.VisibleForTesting;
 import soot.Unit;
 import soot.UnitBox;
 import soot.Value;
@@ -14,6 +15,7 @@ import soot.util.Chain;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,7 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
 
     private final List<String> sinks;
     private final List<String> sources;
+    private final List<Leak> leaks = new ArrayList<>();
 
     //Constructor of the class
     public TaintAnalysis(DirectedGraph<Unit> graph, String sinkFile, String sourceFile, String location) throws IOException {
@@ -63,6 +66,7 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
                         //If a variable is tainted, report a leak
                         for (Value value : taintedValues) {
                             if (usedValues.contains(value)) {
+                                leaks.add(Leak.createLeak(source, unit, location));
                                 System.out.println("——————————————————");
                                 System.out.println("Found a leak in " + location);
                                 System.out.println("Source: line " + source.getJavaSourceStartLineNumber() + ": " + source);
@@ -74,6 +78,11 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, FlowMap<Unit, Value
                 }
             }
         }
+    }
+
+    @VisibleForTesting
+    public List<Leak> getLeaks() {
+        return leaks;
     }
 
     private static Set<Value> getValuesUsedIn(Unit unit) {
